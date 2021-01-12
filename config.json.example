@@ -1,0 +1,11 @@
+{
+    "bot_token": "your.bot.token",
+    "channels": {
+        "hololive": null,
+        "nijisanji": null,
+        "other": null
+    },
+    "ignore": {
+        "groups": []
+    }
+}
