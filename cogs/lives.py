@@ -20,7 +20,7 @@ class LiveWatcher(commands.Cog):
         self.bot = bot
         self.conf = bot.botconf
         self.ihaapi = bot.ihaapiv2
-        channels_data: t.Dict[str, t.Union[str, int, None]] = self.conf
+        channels_data: t.Dict[str, t.Union[str, int, None]] = self.conf["channels"]
         self.channels_set: t.Dict[str, TextChannel] = {
             "hololive": self.bot.get_channel(channels_data["holo"]) if channels_data["holo"] is not None else None,  # noqa: E501
             "nijisanji": self.bot.get_channel(channels_data["niji"]) if channels_data["niji"] is not None else None,  # noqa: E501

@@ -101,6 +101,8 @@ if not hasattr(bot, "ihaapiv2"):
     bot.ihaapiv2 = ihateanimeAPIV2(async_loop)
 if not hasattr(bot, "jst_tz"):
     bot.jst_tz = timezone(timedelta(hours=9))
+if not hasattr(bot, "botconf"):
+    bot.botconf = bot_config
 
 
 @bot.event
@@ -131,8 +133,6 @@ async def on_ready():
         bot.upcoming_message = bot_config["message"]
     else:
         bot.upcoming_message = {"hololive": None, "nijisanji": None, "other": None}
-    if not hasattr(bot, "botconf"):
-        bot.botconf = bot_config
     bot.ignore_lists = bot_config["ignore"]["groups"]
     if not hasattr(bot, "uptime"):
         bot.owner = (await bot.application_info()).owner
