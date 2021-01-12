@@ -15,6 +15,7 @@ class VTuberBot(commands.Bot):
         self.upcoming_message: t.Dict[str, int]
 
         self.korone_img: t.Dict[str, bytes]
+        self.ignore_lists: t.List[str]
 
         self.jst_tz: timezone
 

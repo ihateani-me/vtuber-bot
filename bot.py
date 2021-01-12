@@ -133,6 +133,7 @@ async def on_ready():
         bot.upcoming_message = {"hololive": None, "nijisanji": None, "other": None}
     if not hasattr(bot, "botconf"):
         bot.botconf = bot_config
+    bot.ignore_lists = bot_config["ignore"]["groups"]
     if not hasattr(bot, "uptime"):
         bot.owner = (await bot.application_info()).owner
         bot.uptime = time.time()

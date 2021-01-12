@@ -17,7 +17,7 @@ def setup(bot: VTuberBot):
 
 class LiveWatcher(commands.Cog):
     def __init__(self, bot: VTuberBot):
-        self.bot: commands.Bot = bot
+        self.bot = bot
         self.conf = bot.botconf
         self.ihaapi = bot.ihaapiv2
         channels_data: t.Dict[str, t.Union[str, int, None]] = self.conf
@@ -161,6 +161,8 @@ class LiveWatcher(commands.Cog):
             "other": []
         }
         for result in results_items:
+            if result["group"] in self.bot.ignore_lists:
+                continue
             if result["platform"] == "bilibili":
                 if result["group"] not in ["hololive", "nijisanji", "hololivecn", "virtuareal"]:
                     continue
