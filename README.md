@@ -28,6 +28,18 @@ You can ignore it by just setting it to `null`
 
 Then if you want no groups in the channels, put the `group` key from the API and put it in the `groups` list.
 
+To get list of groups, you can do a `groups` fetch to the GraphQL API on the explorer here: [GraphQL Explorer](https://api.ihateani.me/v2/graphql)<br>
+Then put this GraphQL Query and press `Send Request`
+```graphql
+query VTuberGroups {
+  vtuber {
+    groups {
+      items
+    }
+  }
+}
+```
+
 ## Run
 1. Create a virtual environment for your bot
 2. Use the virtualenv by typing `source your_env/bin/activate` on Linux
