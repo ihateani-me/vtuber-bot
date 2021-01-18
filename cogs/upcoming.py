@@ -11,7 +11,7 @@ from discord.ext import commands, tasks
 from vtutils.bot import VTuberBot
 
 
-OTHERVTUBER_LIST = """[https://api.ihateani.me/v2/vtuber](https://api.ihateani.me/v2/vtuber)"""
+OTHERVTUBER_LIST = """[View Here](https://vtuber.ihateani.me/)"""
 
 HOLOPRO_LIST = """- Hololive
 - Hololive ID
