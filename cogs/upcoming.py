@@ -11,21 +11,6 @@ from discord.ext import commands, tasks
 from vtutils.bot import VTuberBot
 
 
-OTHERVTUBER_LIST = """[View Here](https://vtuber.ihateani.me/)"""
-
-HOLOPRO_LIST = """- Hololive
-- Hololive ID
-- Hololive EN
-- Holostars
-"""
-
-NIJISANJI_LIST = """- Nijisanji
-- Nijisanji ID
-- Nijisanji KR
-- Nijisanji IN
-"""
-
-
 def setup(bot: VTuberBot):
     bot.add_cog(UpcomingWatcher(bot))
 
@@ -37,6 +22,8 @@ class UpcomingWatcher(commands.Cog):
         self.conf = bot.botconf
         self.ihaapi = bot.ihaapiv2
         self.jst: timezone = bot.jst_tz
+        self.LATE = (5 * 60)
+        self.LATE_TOLERANCE = (12 * 60)
 
         self.channels_set: t.Dict[str, TextChannel] = {
             "hololive": self.bot.get_channel(self.conf["channels"]["holo"]),
@@ -68,64 +55,80 @@ class UpcomingWatcher(commands.Cog):
             final_text += add_text
         return final_text
 
-    async def design_youtube(self, dataset: list):
-        collected_yt = []
+    async def design_scheduled(self, dataset: list):
+        grouped_time = {}
         current_time = datetime.now(timezone.utc).timestamp()
-        for yt in dataset:
-            start_time = yt["timeData"]["startTime"]
-            if isinstance(start_time, str):
-                start_time = int(start_time)
-            late_max = start_time + (5 * 60)
-            if yt["platform"] != "youtube":
-                continue
-            lower_title = yt["title"].lower()
-            if "freechat" in lower_title or "free chat" in lower_title:
-                continue
-            msg_design = ""
-            strf = datetime.fromtimestamp(
-                start_time + (9 * 60 * 60), tz=timezone.utc
-            ).strftime("%m/%d %H:%M JST")
-            msg_design += f"`{strf}` "
-            if yt.get("is_member", False):
-                msg_design += "🔒 "
-            if yt.get("is_premiere", False):
-                msg_design += "▶ "
-            channel_data = yt["channel"]
-            channel_name = channel_data.get(
-                "en_name", channel_data.get("name", "Unknown"))
-            msg_design += f"- [{channel_name}]"
-            # https://youtu.be/nvTQ4TEPnsk
-            msg_design += f"(https://youtu.be/{yt['id']})"
-            if current_time > late_max:
-                msg_design = "❓ " + msg_design
-            collected_yt.append({"t": msg_design, "st": start_time})
-        if collected_yt:
-            collected_yt.sort(key=lambda x: x["st"])
-        return collected_yt
 
-    async def design_bilibili(self, dataset: list):
-        collected_bili = []
-        for bili in dataset:
-            start_time = bili["timeData"]["startTime"]
-            if isinstance(start_time, str):
-                start_time = int(start_time)
-            msg_design = ""
-            strf = datetime.fromtimestamp(
+        for data in dataset:
+            start_time = data["timeData"].get(
+                "scheduledStartTime", data["timeData"].get("startTime")
+            )
+            if start_time is None:
+                continue
+            start_time = int(round(start_time))
+            lowered_title = data["title"].lower()
+            if "freechat" in lowered_title or "free chat" in lowered_title:
+                # Skip free chat room
+                continue
+            if current_time >= start_time + self.LATE_TOLERANCE:
+                # Too long
+                continue
+            formatted_time = datetime.fromtimestamp(
                 start_time + (9 * 60 * 60), tz=timezone.utc
             ).strftime("%m/%d %H:%M JST")
-            msg_design += f"`{strf}` "
-            channel_data = bili["channel"]
-            channel_name = channel_data.get(
-                "en_name", channel_data.get("name", "Unknown"))
-            msg_design += f"- [{channel_name}]"
-            msg_design += f"- [{channel_name}]"
-            # https://live.bilibili.com/21908196
-            msg_design += "(https://live.bilibili.com/"
-            msg_design += f"{bili['room_id']})"
-            collected_bili.append({"t": msg_design, "st": start_time})
-        if collected_bili:
-            collected_bili.sort(key=lambda x: x["st"])
-        return collected_bili
+            if formatted_time not in grouped_time:
+                grouped_time[formatted_time] = []
+            grouped_time[formatted_time].append(data)
+
+        MAX_LENGTH = 2048
+        formatted_schedule = ""
+        LINK_FORMAT = {
+            "youtube": "https://youtu.be/",
+            "twitch": "https://twitch.tv/",
+            "twitcasting": "https://twitcasting.tv/",
+            "mildom": "https://mildom.com/"
+        }
+        should_break = False
+        for start_time, dataset in grouped_time.items():
+            temp = f"{formatted_schedule}**{start_time}**\n"
+            if len(temp) >= MAX_LENGTH:
+                break
+            if len(dataset) < 1:
+                continue
+            formatted_schedule = temp
+            for data in dataset:
+                start_time = data["timeData"].get(
+                    "scheduledStartTime", data["timeData"].get("startTime")
+                )
+                msg_fmt = ""
+                if data.get("is_member", False):
+                    msg_fmt += "🔒 "
+                if data.get("is_premiere", False):
+                    msg_fmt += "▶ "
+                if current_time > start_time + self.LATE:
+                    msg_fmt += "❓ "
+                channel_data = data["channel"]
+                channel_name = channel_data.get(
+                    "en_name", channel_data.get(
+                        "name", "Unknown"
+                    )
+                )
+                LINK_PREFIX = LINK_FORMAT.get(data["platform"])
+                msg_fmt += f"**`{channel_name}`**"
+                msg_fmt += f" - [{data['title']}]({LINK_PREFIX}{data['id']})\n"
+                temp = formatted_schedule + msg_fmt
+                if len(temp) >= MAX_LENGTH:
+                    should_break = True
+                    break
+                formatted_schedule = temp
+            if should_break:
+                break
+            temp = formatted_schedule + "\n"
+            if len(temp) >= MAX_LENGTH:
+                break
+            formatted_schedule = temp
+        formatted_schedule = formatted_schedule.rstrip("\n")
+        return formatted_schedule
 
     async def collect_and_map_messages(self) -> t.Dict[str, discord.Message]:
         holomessages: discord.Message = await self.channels_set["hololive"].fetch_message(
@@ -186,49 +189,25 @@ class UpcomingWatcher(commands.Cog):
 
     async def update_message_data(self, message: discord.Message, upcoming_data: list, group: str):
         self.logger.info(f"[Upcoming:{group}] Mapping data...")
-        group_set = {
-            "hololive": HOLOPRO_LIST,
-            "nijisanji": NIJISANJI_LIST,
-            "other": OTHERVTUBER_LIST
-        }
-        youtube_dataset = [
-            stream for stream in upcoming_data if stream["platform"] == "youtube"]
-        bilibili_dataset = []
-        if group != "other":
-            bilibili_dataset = [
-                stream for stream in upcoming_data if stream["platform"] == "bilibili"]
-        youtube_formatted = await self.design_youtube(youtube_dataset)
-        bilibili_formatted = await self.design_bilibili(bilibili_dataset)
+        schedule_formatted = await self.design_scheduled(upcoming_data)
 
-        youtube_formatted = [m["t"] for m in youtube_formatted]
-        bilibili_formatted = [m["t"] for m in bilibili_formatted]
         self.logger.info(f"[Upcoming:{group}] Generating new embed...")
-        embed = discord.Embed(timestamp=datetime.now(tz=self.jst))
+        embed = discord.Embed(title="Upcoming Stream", timestamp=datetime.now(tz=self.jst))
+        if schedule_formatted:
+            embed.description = schedule_formatted
+        else:
+            embed.description = "No scheduled stream!"
         embed.add_field(
-            name="Channel",
-            value=group_set.get(group, "Unknown"),
+            name="More Informtion",
+            value=f"▶ Premiere\n🔒 Member-only\n❓ Late ({self.LATE // 60} minutes threshold)\n\n"
+            "Powered by [ihateani.me API](https://vtuber.ihateani.me/schedules)"
         )
-        embed.add_field(
-            name="Info Icon",
-            value="▶ Premiere\n🔒 Member-only\n❓ Late (5 minutes threshold)"
-        )
-        if youtube_formatted:
-            embed.add_field(
-                name="Upcoming! (YouTube)",
-                value=self._truncate_fields(youtube_formatted),
-                inline=False,
-            )
-        if bilibili_formatted:
-            embed.add_field(
-                name="Upcoming! (BiliBili)",
-                value=self._truncate_fields(bilibili_formatted),
-                inline=False,
-            )
         embed.set_thumbnail(
             url=self.messages_logo.get(
-                group, "https://s.ytimg.com/yts/img/favicon_144-vfliLAfaB.png")
+                group, "https://s.ytimg.com/yts/img/favicon_144-vfliLAfaB.png"
+            )
         )
-        embed.set_footer(text="Infobox v1.3 | Updated")
+        embed.set_footer(text="Infobox v1.4 | Updated")
 
         self.logger.info(f"[Upcoming:{group}] Updating message....")
         try:
