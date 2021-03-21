@@ -211,8 +211,8 @@ async def initialize(ctx):
     template_embed.set_footer(text="Infobox v1.3")
     template_embed.add_field(name="To be added", value="*This is a placeholder*")
     await ctx.send("Initializing...")
-    if channels["hololive"] is not None:
-        holochan = bot.get_channel(maybe_int(channels["hololive"]))
+    if channels["holo"] is not None:
+        holochan = bot.get_channel(maybe_int(channels["holo"]))
         if holochan is None:
             await ctx.send("Failed to get Hololive channel")
         else:
@@ -221,8 +221,8 @@ async def initialize(ctx):
                 bot.upcoming_message["hololive"] = holomsg.id
             except Exception:
                 await ctx.send("Failed to create placeholder message for Hololive channel")
-    if channels["nijisanji"] is not None:
-        nijichan = bot.get_channel(maybe_int(channels["nijisanji"]))
+    if channels["niji"] is not None:
+        nijichan = bot.get_channel(maybe_int(channels["niji"]))
         if nijichan is None:
             await ctx.send("Failed to get Nijisanji channel")
         else:
@@ -232,7 +232,7 @@ async def initialize(ctx):
             except Exception:
                 await ctx.send("Failed to create placeholder message for Nijisanji channel")
     if channels["other"] is not None:
-        otherchan = bot.get_channel(maybe_int(channels["nijisanji"]))
+        otherchan = bot.get_channel(maybe_int(channels["other"]))
         if otherchan is None:
             await ctx.send("Failed to get Other channel")
         else:
