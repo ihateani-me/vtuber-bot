@@ -13,8 +13,8 @@ Rename `config.json.example` to `config.json`
 {
     "bot_token": "your.bot.token",
     "channels": {
-        "hololive": null,
-        "nijisanji": null,
+        "holo": null,
+        "niji": null,
         "other": null
     },
     "ignore": {
