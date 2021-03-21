@@ -131,15 +131,19 @@ class UpcomingWatcher(commands.Cog):
         return formatted_schedule
 
     async def collect_and_map_messages(self) -> t.Dict[str, discord.Message]:
-        holomessages: discord.Message = await self.channels_set["hololive"].fetch_message(
-            self.upcoming_message_set["hololive"]
-        )
-        nijimessages: discord.Message = await self.channels_set["nijisanji"].fetch_message(
-            self.upcoming_message_set["nijisanji"]
-        )
-        othermessages: discord.Message = await self.channels_set["other"].fetch_message(
-            self.upcoming_message_set["other"]
-        )
+        holomessages = nijimessages = othermessages = None
+        if self.channels_set["hololive"] is not None and self.upcoming_message_set["hololive"] is not None:
+            holomessages: discord.Message = await self.channels_set["hololive"].fetch_message(
+                self.upcoming_message_set["hololive"]
+            )
+        if self.channels_set["nijisanji"] is not None and self.upcoming_message_set["nijisanji"] is not None:
+            nijimessages: discord.Message = await self.channels_set["nijisanji"].fetch_message(
+                self.upcoming_message_set["nijisanji"]
+            )
+        if self.channels_set["other"] is not None and self.upcoming_message_set["other"] is not None:
+            othermessages: discord.Message = await self.channels_set["other"].fetch_message(
+                self.upcoming_message_set["other"]
+            )
         return {
             "hololive": holomessages,
             "nijisanji": nijimessages,

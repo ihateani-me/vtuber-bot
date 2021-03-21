@@ -193,6 +193,8 @@ class LiveWatcher(commands.Cog):
     async def filter_message(
         self, message_set: t.List[discord.Message], tipe: str
     ) -> t.List[discord.Message]:
+        if message_set is None:
+            return None
         # Filter out user message
         message_set = [msg for msg in message_set if msg.author.bot]
         message_set = [
@@ -201,15 +203,19 @@ class LiveWatcher(commands.Cog):
         return message_set
 
     async def collect_and_map_messages(self):
-        holomessages: t.List[discord.Message] = await self.channels_set["hololive"].history(
-            limit=None
-        ).flatten()
-        nijimessages: t.List[discord.Message] = await self.channels_set["nijisanji"].history(
-            limit=None
-        ).flatten()
-        othermessages: t.List[discord.Message] = await self.channels_set["other"].history(
-            limit=None
-        ).flatten()
+        holomessages = nijimessages = othermessages = None
+        if self.channels_set["hololive"] is not None:
+            holomessages: t.List[discord.Message] = await self.channels_set["hololive"].history(
+                limit=None
+            ).flatten()
+        if self.channels_set["nijisanji"] is not None:
+            nijimessages: t.List[discord.Message] = await self.channels_set["nijisanji"].history(
+                limit=None
+            ).flatten()
+        if self.channels_set["other"] is not None:
+            othermessages: t.List[discord.Message] = await self.channels_set["other"].history(
+                limit=None
+            ).flatten()
         return {
             "hololive": await self.filter_message(holomessages, "hololive"),
             "nijisanji": await self.filter_message(nijimessages, "nijisanji"),
@@ -416,15 +422,18 @@ class LiveWatcher(commands.Cog):
             self.logger.info("[Live] Mapping results...")
             mapped_lives_data = await self._split_results_into_group(current_lives_all)
             self.logger.info("[Live] Starting live update processing...")
-            await self.do_and_post_live_data(
-                collected_messages["hololive"], mapped_lives_data["hololive"], "hololive"
-            )
-            await self.do_and_post_live_data(
-                collected_messages["nijisanji"], mapped_lives_data["nijisanji"], "nijisanji"
-            )
-            await self.do_and_post_live_data(
-                collected_messages["other"], mapped_lives_data["other"], "other"
-            )
+            if collected_messages["hololive"] is not None:
+                await self.do_and_post_live_data(
+                    collected_messages["hololive"], mapped_lives_data["hololive"], "hololive"
+                )
+            if collected_messages["nijisanji"] is not None:
+                await self.do_and_post_live_data(
+                    collected_messages["nijisanji"], mapped_lives_data["nijisanji"], "nijisanji"
+                )
+            if collected_messages["other"] is not None:
+                await self.do_and_post_live_data(
+                    collected_messages["other"], mapped_lives_data["other"], "other"
+                )
 
             self.logger.info("[Live] Finalizing...")
             if self.channels_set["hololive"] is not None:
