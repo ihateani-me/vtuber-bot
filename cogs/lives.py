@@ -20,7 +20,8 @@ class LiveWatcher(commands.Cog):
         self.bot = bot
         self.conf = bot.botconf
         self.ihaapi = bot.ihaapiv2
-        channels_data: t.Dict[str, t.Union[str, int, None]] = self.conf["channels"]
+        channels_data: t.Dict[str, t.Union[str,
+                                           int, None]] = self.conf["channels"]
         self.channels_set: t.Dict[str, TextChannel] = {
             "hololive": self.bot.get_channel(channels_data["holo"]) if channels_data["holo"] is not None else None,  # noqa: E501
             "nijisanji": self.bot.get_channel(channels_data["niji"]) if channels_data["niji"] is not None else None,  # noqa: E501
@@ -74,6 +75,12 @@ class LiveWatcher(commands.Cog):
                 "b": "https://twitcasting.tv/",
                 "cb": "https://twitcasting.tv/",
                 "fi": "https://twitcasting.tv/img/icon192.png"
+            },
+            "mildom": {
+                "c": discord.Color.from_rgb(56, 204, 227),
+                "b": "https://mildom.com/",
+                "cb": "https://mildom.com/profile/",
+                "fi": "https://mildom.com/assets/logo.png"
             }
         }
 
@@ -90,7 +97,7 @@ class LiveWatcher(commands.Cog):
         elif web_type == "bilibili":
             print(live_data)
             stream_url = f"{web_base}{live_data['room_id']}"
-        elif web_type == "twitcasting":
+        elif web_type == "twitcasting" or web_type == "mildom":
             stream_url = f"{web_base}{live_data['channel']['id']}"
         elif web_type == "twitch":
             stream_url = f"{web_base}{live_data['channel']['id']}"
@@ -130,6 +137,8 @@ class LiveWatcher(commands.Cog):
             foot = "twitch" + foot
         elif web_type == "twitcasting":
             foot = "twcast" + foot
+        elif web_type == "mildom":
+            foot = "mildom" + foot
         embed.set_footer(text=foot, icon_url=web_logo)
         return embed
 
@@ -250,6 +259,7 @@ class LiveWatcher(commands.Cog):
         collected_msgs_b2 = []
         collected_msgs_ttv = []
         collected_msgs_twcast = []
+        collected_msgs_mildom = []
         if collected_messages:
             for msg in collected_messages:
                 embed_data = msg.embeds
@@ -271,6 +281,10 @@ class LiveWatcher(commands.Cog):
                     collected_msgs_twcast.append(
                         {"id": watch_id, "msg_data": msg}
                     )
+                elif watch_id.startswith("mildom"):
+                    collected_msgs_mildom.append({
+                        "id": watch_id, "msg_data": msg
+                    })
                 else:
                     collected_msgs_yt.append(
                         {"id": watch_id, "msg_data": msg}
@@ -281,13 +295,20 @@ class LiveWatcher(commands.Cog):
             self.total_streams_map[group] = len(collected_messages)
 
         current_lives_yt = [
-            c for c in current_lives_data if c["platform"] == "youtube"]
+            c for c in current_lives_data if c["platform"] == "youtube"
+        ]
         current_lives_bili = [
-            c for c in current_lives_data if c["platform"] == "bilibili"]
+            c for c in current_lives_data if c["platform"] == "bilibili"
+        ]
         current_lives_ttv = [
-            c for c in current_lives_data if c["platform"] == "twitch"]
+            c for c in current_lives_data if c["platform"] == "twitch"
+        ]
         current_lives_twcast = [
-            c for c in current_lives_data if c["platform"] == "twitcasting"]
+            c for c in current_lives_data if c["platform"] == "twitcasting"
+        ]
+        current_lives_mildom = [
+            c for c in current_lives_data if c["platform"] == "mildom"
+        ]
 
         collected_ytmsg_ids = [c["id"] for c in collected_msgs_yt]
         channels_lives_yt = [c["channel"]["id"] for c in current_lives_yt]
@@ -309,12 +330,18 @@ class LiveWatcher(commands.Cog):
             "twcast" + c["id"] for c in current_lives_twcast
         ]
 
+        collected_mildommsg_ids = [c["id"] for c in collected_msgs_mildom]
+        collceted_lives_mildomids = [
+            "mildom" + c["id"] for c in current_lives_mildom
+        ]
+
         self.logger.info(f"[Live:{group}] Collecting everything...")
         collective_msg_merge = []
         collective_msg_merge.extend(collected_msgs_yt)
         collective_msg_merge.extend(collected_msgs_b2)
         collective_msg_merge.extend(collected_msgs_ttv)
         collective_msg_merge.extend(collected_msgs_twcast)
+        collective_msg_merge.extend(collected_msgs_mildom)
 
         need_to_be_posted = []
         need_to_be_deleted = []
@@ -330,6 +357,9 @@ class LiveWatcher(commands.Cog):
         for live_id in collected_lives_twcastids:
             if live_id not in collected_twcastmsg_ids:
                 need_to_be_posted.append(live_id)
+        for live_id in collceted_lives_mildomids:
+            if live_id not in collected_mildommsg_ids:
+                need_to_be_posted.append(live_id)
 
         for msg_id in collected_ytmsg_ids:
             if msg_id not in collected_lives_ytids:
@@ -343,6 +373,9 @@ class LiveWatcher(commands.Cog):
         for msg_id in collected_twcastmsg_ids:
             if msg_id not in collected_lives_twcastids:
                 need_to_be_deleted.append(msg_id)
+        for msg_id in collected_mildommsg_ids:
+            if live_id not in collceted_lives_mildomids:
+                need_to_be_deleted.append(live_id)
 
         # Let's delete everything first!
         self.logger.info(f"[Live:{group}] Starting deletion process...")
@@ -359,7 +392,11 @@ class LiveWatcher(commands.Cog):
         self.logger.info(f"[Live:{group}] Starting posting process...")
         for new_live in need_to_be_posted:
             self.logger.warn(f"[Live:{group}] Posting {new_live}...")
-            if new_live.startswith("twitch") or new_live.startswith("twcast"):
+            if (
+                new_live.startswith("twitch")
+                or new_live.startswith("twcast")
+                or new_live.startswith("mildom")
+            ):
                 new_live = new_live[6:]
             live_data = await self.find_live_info(current_lives_data, new_live)
             embed_info = await self.create_embed(live_data, live_data["platform"])
