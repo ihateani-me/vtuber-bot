@@ -34,7 +34,7 @@ class UpcomingWatcher(commands.Cog):
 
         self.messages_logo = {
             "hololive": "https://user-images.strikinglycdn.com/res/hrscywv4p/image/upload/h_192,w_192,q_auto/1369026/logo_square_qn4ncy.png",  # noqa: E501
-            "nijisanji": "https://nijisanji.ichikara.co.jp/wp-content/uploads/2018/12/cropped-Nijisanji_Rogo_icon_eye_RGB-192x192.png",  # noqa: E501
+            "nijisanji": "https://www.nijisanji.jp/favicon/apple-touch-icon.png",  # noqa: E501
             "other": "https://s.ytimg.com/yts/img/favicon_144-vfliLAfaB.png"  # noqa: E501
         }
         self.logger: logging.Logger = logging.getLogger("cogs.upcoming")
