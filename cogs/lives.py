@@ -282,9 +282,9 @@ class LiveWatcher(commands.Cog):
                         {"id": watch_id, "msg_data": msg}
                     )
                 elif watch_id.startswith("mildom"):
-                    collected_msgs_mildom.append({
-                        "id": watch_id, "msg_data": msg
-                    })
+                    collected_msgs_mildom.append(
+                        {"id": watch_id, "msg_data": msg}
+                    )
                 else:
                     collected_msgs_yt.append(
                         {"id": watch_id, "msg_data": msg}
@@ -293,6 +293,12 @@ class LiveWatcher(commands.Cog):
         if self.total_streams_map[group] == -1:
             # Avoid renaming.
             self.total_streams_map[group] = len(collected_messages)
+        self.logger.info("Information about message:")
+        self.logger.info(f"Youtube: {len(collected_msgs_yt)}")
+        self.logger.info(f"Bilibili: {len(collected_msgs_b2)}")
+        self.logger.info(f"Twitch: {len(collected_msgs_ttv)}")
+        self.logger.info(f"Twitcasting: {len(collected_msgs_twcast)}")
+        self.logger.info(f"Mildom: {len(collected_msgs_mildom)}")
 
         current_lives_yt = [
             c for c in current_lives_data if c["platform"] == "youtube"
@@ -375,13 +381,14 @@ class LiveWatcher(commands.Cog):
                 need_to_be_deleted.append(msg_id)
         for msg_id in collected_mildommsg_ids:
             if live_id not in collceted_lives_mildomids:
-                need_to_be_deleted.append(live_id)
+                need_to_be_deleted.append(msg_id)
 
         # Let's delete everything first!
         self.logger.info(f"[Live:{group}] Starting deletion process...")
         for stream in need_to_be_deleted:
             self.logger.warn(
-                f"[Live:{group}]: Deleting {stream} from channel...")
+                f"[Live:{group}]: Deleting {stream} from channel..."
+            )
             msg_data: discord.Message = await self.find_msg(collective_msg_merge, stream)
             try:
                 await msg_data.delete()
