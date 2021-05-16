@@ -38,7 +38,6 @@ class UpcomingWatcher(commands.Cog):
             "nijisanji": "https://www.nijisanji.jp/favicon/apple-touch-icon.png",  # noqa: E501
             "other": "https://s.ytimg.com/yts/img/favicon_144-vfliLAfaB.png"  # noqa: E501
         }
-        self._fcre = re.compile(r"(fr[e]{2}).*(chat)", re.I)
         self.logger: logging.Logger = logging.getLogger("cogs.upcoming")
 
         # Tasks
@@ -57,11 +56,12 @@ class UpcomingWatcher(commands.Cog):
             final_text += add_text
         return final_text
 
-    def is_freechat(self, title: str) -> bool:
-        match = re.match(self._fcre, title)
-        if match is None:
-            return False
-        return True
+    @staticmethod
+    def is_freechat(title: str) -> bool:
+        all_match = re.findall(r"(fr[e]{2}).*(chat)", title, re.I)
+        if len(all_match) > 0:
+            return True
+        return False
 
     async def design_scheduled(self, dataset: list):
         grouped_time = {}
