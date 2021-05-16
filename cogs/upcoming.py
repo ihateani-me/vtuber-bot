@@ -1,4 +1,5 @@
 import asyncio
+import re
 import logging
 import traceback
 from datetime import datetime, timezone
@@ -37,6 +38,7 @@ class UpcomingWatcher(commands.Cog):
             "nijisanji": "https://www.nijisanji.jp/favicon/apple-touch-icon.png",  # noqa: E501
             "other": "https://s.ytimg.com/yts/img/favicon_144-vfliLAfaB.png"  # noqa: E501
         }
+        self._fcre = re.compile(r"(fr[e]{2}).*(chat)", re.I)
         self.logger: logging.Logger = logging.getLogger("cogs.upcoming")
 
         # Tasks
@@ -55,6 +57,12 @@ class UpcomingWatcher(commands.Cog):
             final_text += add_text
         return final_text
 
+    def is_freechat(self, title: str) -> bool:
+        match = re.match(self._fcre, title)
+        if match is None:
+            return False
+        return True
+
     async def design_scheduled(self, dataset: list):
         grouped_time = {}
         current_time = datetime.now(timezone.utc).timestamp()
@@ -66,8 +74,7 @@ class UpcomingWatcher(commands.Cog):
             if start_time is None:
                 continue
             start_time = int(round(start_time))
-            lowered_title = data["title"].lower()
-            if "freechat" in lowered_title or "free chat" in lowered_title:
+            if self.is_freechat(data["title"]):
                 # Skip free chat room
                 continue
             if current_time >= start_time + self.LATE_TOLERANCE:
@@ -87,6 +94,13 @@ class UpcomingWatcher(commands.Cog):
             "twitch": "https://twitch.tv/",
             "twitcasting": "https://twitcasting.tv/",
             "mildom": "https://mildom.com/"
+        }
+        ICONS_MAP_FORMAT = {
+            "youtube": "<:vtBYT:843473930348920832>",
+            "twitch": "<:vtBTTV:843474008984518687>",
+            "twitcasting": "<:vtBTW:843473977484509184>",
+            "mildom": "<:vtBMD:843474000159965226>",
+            "bilibili": "<:vtBB2:843474401310670848>"
         }
         should_break = False
         for start_time, dataset in grouped_time.items():
@@ -114,6 +128,10 @@ class UpcomingWatcher(commands.Cog):
                     )
                 )
                 LINK_PREFIX = LINK_FORMAT.get(data["platform"])
+                ICON_PREFIX = ICONS_MAP_FORMAT.get(data["platform"], "")
+                if self.bot.user.id == 714518710924345475:
+                    # Add icon prefix if it's my deployed bot
+                    msg_fmt += f"{ICON_PREFIX} "
                 msg_fmt += f"**`{channel_name}`**"
                 msg_fmt += f" - [{data['title']}]({LINK_PREFIX}{data['id']})\n"
                 temp = formatted_schedule + msg_fmt
