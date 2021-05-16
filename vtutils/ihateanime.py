@@ -7,7 +7,7 @@ import aiohttp
 
 vtuberlive_gql = r"""query($cursor:String) {
     vtuber {
-        live(cursor:$cursor,limit:50) {
+        live(cursor:$cursor,limit:100) {
             _total
             items {
                 id
@@ -38,7 +38,7 @@ vtuberlive_gql = r"""query($cursor:String) {
 
 vtuberupcoming_gql = r"""query($cursor:String) {
     vtuber {
-        upcoming(cursor:$cursor,limit:50) {
+        upcoming(cursor:$cursor,limit:100) {
             _total
             items {
                 id
