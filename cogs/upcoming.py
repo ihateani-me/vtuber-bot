@@ -103,12 +103,22 @@ class UpcomingWatcher(commands.Cog):
             "bilibili": "<:vtBB2:843474401310670848>"
         }
         should_break = False
+        exchanged_fmt = formatted_schedule
         for start_time, dataset in grouped_time.items():
-            temp = f"{formatted_schedule}**{start_time}**\n"
-            if len(temp) >= MAX_LENGTH:
-                break
             if len(dataset) < 1:
                 continue
+            first_data = dataset[0]
+            real_start_time = first_data["timeData"].get(
+                "scheduledStartTime", first_data["timeData"].get("startTime")
+            )
+            if real_start_time is None:
+                real_start_time = "**" + start_time + "**"
+            else:
+                real_start_time = f"<t:{int(round(real_start_time))}>"
+            temp = f"{formatted_schedule} {real_start_time}\n"
+            if len(temp) >= MAX_LENGTH:
+                break
+            exchanged_fmt = formatted_schedule
             formatted_schedule = temp
             for data in dataset:
                 start_time = data["timeData"].get(
@@ -143,6 +153,7 @@ class UpcomingWatcher(commands.Cog):
                 break
             temp = formatted_schedule + "\n"
             if len(temp) >= MAX_LENGTH:
+                formatted_schedule = exchanged_fmt
                 break
             formatted_schedule = temp
         formatted_schedule = formatted_schedule.rstrip("\n")
